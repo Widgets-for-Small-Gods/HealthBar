@@ -98,8 +98,8 @@
           <div style="display: flex; align-items: center; gap: 0.5em;">
             <div id="health" style="font-size: 2em;">Loading...</div>
             <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-              <button class="small-btn" onclick="adjustMaxHealth(1)">&#9650;</button>
-              <button class="small-btn" onclick="adjustMaxHealth(-1)">&#9660;</button>
+              <button class="small-btn" onclick="adjustmax_health(1)">&#9650;</button>
+              <button class="small-btn" onclick="adjustmax_health(-1)">&#9660;</button>
             </div>
           </div>
         </div>
@@ -133,21 +133,21 @@
   const healthBar = document.getElementById("health-bar");
   const skullOverlay = document.getElementById("skull-overlay");
 
-  let currentHealth = 0;
-  let maxHealth = 0;
+  let health = 0;
+  let max_health = 0;
 
   // ---- Fetch the latest data ----
   async function loadData() {
     const res = await fetch(`${API_BASE}/data/${WIDGET_ID}`);
     const data = await res.json();
-    currentHealth = data.currentHealth;
-    maxHealth = data.maxHealth;
+    health = data.health;
+    max_health = data.max_health;
     renderHealth();
   }
 
   // ---- Save data back to server ----
   async function saveData() {
-    const data = { currentHealth, maxHealth };
+    const data = { health, max_health };
     await fetch(`${API_BASE}/update/${WIDGET_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -157,8 +157,8 @@
 
   // ---- Update health display ----
   function renderHealth() {
-    healthEl.textContent = `${currentHealth}/${maxHealth}`;
-    const percent = (currentHealth / maxHealth) * 100;
+    healthEl.textContent = `${health}/${max_health}`;
+    const percent = (health / max_health) * 100;
     healthBar.style.width = `${percent}%`;
 
     // Change color based on percentage
@@ -167,25 +167,25 @@
     else healthBar.style.background = "red";
 
     // Skull overlay if dead
-    skullOverlay.style.opacity = currentHealth <= 0 ? 0.9 : 0;
+    skullOverlay.style.opacity = health <= 0 ? 0.9 : 0;
   }
 
   // ---- Button functions ----
   function updateHealth(amount) {
-    currentHealth = Math.max(0, Math.min(maxHealth, currentHealth + amount));
+    health = Math.max(0, Math.min(max_health, health + amount));
     renderHealth();
     saveData();
   }
 
-  function adjustMaxHealth(amount) {
-    maxHealth = Math.max(1, maxHealth + amount);
-    currentHealth = Math.min(currentHealth, maxHealth);
+  function adjustmax_health(amount) {
+    max_health = Math.max(1, max_health + amount);
+    health = Math.min(health, max_health);
     renderHealth();
     saveData();
   }
 
   function resetHealth() {
-    currentHealth = maxHealth;
+    health = max_health;
     renderHealth();
     saveData();
   }
