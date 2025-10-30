@@ -5,7 +5,7 @@
   <title>Bragi's Health Tracker</title>
   <style>
     body {
-      background-color: #ffffff; /* changed from #111 */
+      background-color: #ffffff;
       font-family: 'Georgia', serif;
       display: flex;
       justify-content: center;
@@ -13,7 +13,6 @@
       height: 100vh;
       margin: 0;
     }
-
     .frame-container {
       position: relative;
       width: 100%;
@@ -24,9 +23,8 @@
       background-position: center;
       font-size: clamp(14px, 2vw, 20px);
       overflow: hidden;
-      padding-bottom: 100%; /* This keeps the container square but flexible */
+      padding-bottom: 100%;
     }
-            
     .content {
       position: absolute;
       top: 10%;
@@ -40,19 +38,10 @@
       text-align: center;
       font-size: clamp(14px, 1.2vw, 18px);
       color: #222;
-      overflow: auto; /* Allow content to grow if necessary */
+      overflow: auto;
     }
-        
-    .content h1 {
-      font-size: 2em;
-      margin-top: 0.5em;
-      margin-bottom: 0.5em;
-    }
-    
-    #health {
-      font-size: 2em;
-    }
-
+    .content h1 { font-size: 2em; margin: 0.5em 0; }
+    #health { font-size: 2em; }
     button {
       background: #333;
       color: white;
@@ -63,7 +52,6 @@
       cursor: pointer;
       border-radius: 5px;
     }
-
     .small-btn {
       background: #222;
       color: white;
@@ -74,19 +62,14 @@
       cursor: pointer;
       border-radius: 3px;
     }
-    
-  .health-bar-container {
-    height: 1.5em;
-    border-radius: 0.8em;
-    margin: 0.5em 10% 1em 10%
-  }
-    
-  .small-btn:hover {
-    background: #444;
-  }
-      
-    button:hover {
-      background: #555;
+    .small-btn:hover { background: #444; }
+    button:hover { background: #555; }
+    .health-bar-container {
+      height: 1.5em;
+      border-radius: 0.8em;
+      margin: 0.5em 10% 1em 10%;
+      background: #ddd;
+      overflow: hidden;
     }
   </style>
 </head>
@@ -94,23 +77,23 @@
   <div class="frame-container">
     <div class="content">
       <h1>Health</h1>
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1em;">
-          <div style="display: flex; align-items: center; gap: 0.5em;">
-            <div id="health" style="font-size: 2em;">Loading...</div>
-            <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-              <button class="small-btn" onclick="adjustmax_health(1)">&#9650;</button>
-              <button class="small-btn" onclick="adjustmax_health(-1)">&#9660;</button>
-            </div>
+      <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1em;">
+        <div style="display: flex; align-items: center; gap: 0.5em;">
+          <div id="health">Loading...</div>
+          <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+            <button class="small-btn" onclick="adjustMaxHealth(1)">▲</button>
+            <button class="small-btn" onclick="adjustMaxHealth(-1)">▼</button>
           </div>
         </div>
-        <div class="health-bar-container" style="background: #ddd; overflow: hidden;">
-          <div id="health-bar" style="height: 100%; background: red; width: 100%; transition: width 0.3s ease;"></div>
-        </div>
-        <div>
-          <button onclick="updateHealth(-1)">-1</button>
-          <button onclick="updateHealth(1)">+1</button>
-          <button onclick="resetHealth()">Full Health</button>
-        </div>
+      </div>
+      <div class="health-bar-container">
+        <div id="health-bar" style="height: 100%; background: red; width: 100%; transition: width 0.3s ease;"></div>
+      </div>
+      <div>
+        <button onclick="updateHealth(-1)">-1</button>
+        <button onclick="updateHealth(1)">+1</button>
+        <button onclick="resetHealth()">Full Health</button>
+      </div>
     </div>
     <img id="skull-overlay" src="skull.png" alt="Skull" style="
       position: absolute;
@@ -125,74 +108,80 @@
     ">
   </div>
 
-  <script>
-  const API_BASE = "https://notion-widget-backend.onrender.com";
-  const WIDGET_ID = "bragi";
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  const healthEl = document.getElementById("health");
-  const healthBar = document.getElementById("health-bar");
-  const skullOverlay = document.getElementById("skull-overlay");
+    // --- Supabase config ---
+    const SUPABASE_URL = 'https://emrsydwvrmwrnyrotgdl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtcnN5ZHd2cm13cm55cm90Z2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MjUxNjUsImV4cCI6MjA3NzQwMTE2NX0.7xiMRkxH72DTTzOR_CdtCXqSJXyg7pNbu4jh4zhjGSs';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let health = 0;
-  let max_health = 0;
+    const WIDGET_ID = 'bragi';
+    const healthEl = document.getElementById("health");
+    const healthBar = document.getElementById("health-bar");
+    const skullOverlay = document.getElementById("skull-overlay");
 
-  // ---- Fetch the latest data ----
-  async function loadData() {
-    const res = await fetch(`${API_BASE}/data/${WIDGET_ID}`);
-    const data = await res.json();
-    health = data.health;
-    max_health = data.max_health;
-    renderHealth();
-  }
+    let health = 0;
+    let max_health = 0;
 
-  // ---- Save data back to server ----
-  async function saveData() {
-    const data = { health, max_health };
-    await fetch(`${API_BASE}/update/${WIDGET_ID}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-  }
+    async function loadData() {
+      const { data, error } = await supabase
+        .from('widgets')
+        .select('health, max_health')
+        .eq('id', WIDGET_ID)
+        .single();
 
-  // ---- Update health display ----
-  function renderHealth() {
-    healthEl.textContent = `${health}/${max_health}`;
-    const percent = (health / max_health) * 100;
-    healthBar.style.width = `${percent}%`;
+      if (error) {
+        console.error(error);
+        return;
+      }
 
-    // Change color based on percentage
-    if (percent > 60) healthBar.style.background = "green";
-    else if (percent > 30) healthBar.style.background = "orange";
-    else healthBar.style.background = "red";
+      health = data.health;
+      max_health = data.max_health;
+      renderHealth();
+    }
 
-    // Skull overlay if dead
-    skullOverlay.style.opacity = health <= 0 ? 0.9 : 0;
-  }
+    async function saveData() {
+      const { error } = await supabase
+        .from('widgets')
+        .update({ health, max_health })
+        .eq('id', WIDGET_ID);
 
-  // ---- Button functions ----
-  function updateHealth(amount) {
-    health = Math.max(0, Math.min(max_health, health + amount));
-    renderHealth();
-    saveData();
-  }
+      if (error) console.error(error);
+    }
 
-  function adjustmax_health(amount) {
-    max_health = Math.max(1, max_health + amount);
-    health = Math.min(health, max_health);
-    renderHealth();
-    saveData();
-  }
+    function renderHealth() {
+      healthEl.textContent = `${health}/${max_health}`;
+      const percent = (health / max_health) * 100;
+      healthBar.style.width = `${percent}%`;
 
-  function resetHealth() {
-    health = max_health;
-    renderHealth();
-    saveData();
-  }
+      if (percent > 60) healthBar.style.background = "green";
+      else if (percent > 30) healthBar.style.background = "orange";
+      else healthBar.style.background = "red";
 
-  // ---- Initialize ----
-  loadData();
+      skullOverlay.style.opacity = health <= 0 ? 0.9 : 0;
+    }
 
-</script>
+    function updateHealth(amount) {
+      health = Math.max(0, Math.min(max_health, health + amount));
+      renderHealth();
+      saveData();
+    }
+
+    function adjustMaxHealth(amount) {
+      max_health = Math.max(1, max_health + amount);
+      health = Math.min(health, max_health);
+      renderHealth();
+      saveData();
+    }
+
+    function resetHealth() {
+      health = max_health;
+      renderHealth();
+      saveData();
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
