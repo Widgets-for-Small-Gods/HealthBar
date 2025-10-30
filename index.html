@@ -126,105 +126,73 @@
   </div>
 
   <script>
-  const baseUrl = 'https://script.google.com/macros/s/AKfycbxqb8T9cEhAO_2cRT26ugvZQjC-jtpslKoU5Y1BLBQatdgNDw0ULqLKse4feQBl6gq3Fg/exec';
-  const playerFile = 'bragi.json';
-  const token = 'MY_SUPPER_SECRET_KEY'; // SAME as in your Google Apps Script
+  const API_BASE = "https://notion-widget-backend.onrender.com";
+  const WIDGET_ID = "bragi";
 
-  let bragiHealth = 0;
-  let bragiMaxHealth = 0;
+  const healthEl = document.getElementById("health");
+  const healthBar = document.getElementById("health-bar");
+  const skullOverlay = document.getElementById("skull-overlay");
 
-  async function fetchHealth() {
-    try {
-      const res = await fetch(`${baseUrl}?file=${playerFile}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      bragiHealth = data.bragi_health;
-      bragiMaxHealth = data.bragi_max_health;
-      renderHealth();
-    } catch (err) {
-      console.error('Error fetching health:', err);
-      document.getElementById('health').innerText = 'Error loading health.';
-    }
+  let currentHealth = 0;
+  let maxHealth = 0;
+
+  // ---- Fetch the latest data ----
+  async function loadData() {
+    const res = await fetch(`${API_BASE}/data/${WIDGET_ID}`);
+    const data = await res.json();
+    currentHealth = data.currentHealth;
+    maxHealth = data.maxHealth;
+    renderHealth();
   }
 
+  // ---- Save data back to server ----
+  async function saveData() {
+    const data = { currentHealth, maxHealth };
+    await fetch(`${API_BASE}/update/${WIDGET_ID}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  }
+
+  // ---- Update health display ----
   function renderHealth() {
-    document.getElementById('health').innerText = `${bragiHealth} / ${bragiMaxHealth}`;
-    const percent = Math.min(100, (bragiHealth / bragiMaxHealth) * 100);
-    const bar = document.getElementById('health-bar');
-    bar.style.width = percent + '%';
-    const skull = document.getElementById('skull-overlay');
-    skull.style.opacity = bragiHealth <= 0 ? 1 : 0;
+    healthEl.textContent = `${currentHealth}/${maxHealth}`;
+    const percent = (currentHealth / maxHealth) * 100;
+    healthBar.style.width = `${percent}%`;
+
+    // Change color based on percentage
+    if (percent > 60) healthBar.style.background = "green";
+    else if (percent > 30) healthBar.style.background = "orange";
+    else healthBar.style.background = "red";
+
+    // Skull overlay if dead
+    skullOverlay.style.opacity = currentHealth <= 0 ? 0.9 : 0;
   }
 
-  async function saveHealth() {
-    const url = `${baseUrl}?file=${playerFile}&token=${token}`;
-
-    const updatedData = {
-      bragi_health: bragiHealth,
-      bragi_max_health: bragiMaxHealth
-    };
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedData)
-      });
-
-      const text = await response.text();
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = { error: `Invalid JSON from server: ${text}` };
-      }
-
-      if (!response.ok || parsed.error) {
-        console.error('Failed to save health:', parsed.error || text);
-        document.getElementById('health').innerText = `Save error: ${parsed.error || text}`;
-      } else {
-        console.log('Health saved successfully:', parsed);
-      }
-
-    } catch (err) {
-      console.error('Error during saveHealth():', err);
-      document.getElementById('health').innerText = `Save error: ${err.message}`;
-    }
-  }
-
-  async function updateHealth(change) {
-    bragiHealth = Math.max(0, bragiHealth + change);
+  // ---- Button functions ----
+  function updateHealth(amount) {
+    currentHealth = Math.max(0, Math.min(maxHealth, currentHealth + amount));
     renderHealth();
-    await saveHealth();
+    saveData();
   }
 
-  async function resetHealth() {
-    bragiHealth = bragiMaxHealth;
+  function adjustMaxHealth(amount) {
+    maxHealth = Math.max(1, maxHealth + amount);
+    currentHealth = Math.min(currentHealth, maxHealth);
     renderHealth();
-    await saveHealth();
+    saveData();
   }
 
-  async function adjustMaxHealth(change) {
-    bragiMaxHealth = Math.max(1, bragiMaxHealth + change);
-    bragiHealth = Math.min(bragiHealth, bragiMaxHealth);
+  function resetHealth() {
+    currentHealth = maxHealth;
     renderHealth();
-    await saveHealth();
+    saveData();
   }
 
-  // Initial load
-  fetchHealth();
+  // ---- Initialize ----
+  loadData();
 
-  // Auto refresh every 30s
-  setInterval(fetchHealth, 30000);
-
-  // Refresh when user returns to the page
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      fetchHealth();
-    }
-  });
 </script>
 </body>
 </html>
