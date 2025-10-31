@@ -186,6 +186,42 @@
     window.updateHealth = updateHealth;
     window.adjustMaxHealth = adjustMaxHealth;
     window.resetHealth = resetHealth;
+
+    // --- Auto-refresh every 3 minutes when visible ---
+    let refreshInterval = null;
+    
+    function startAutoRefresh() {
+      // Prevent multiple intervals
+      if (refreshInterval) return;
+      refreshInterval = setInterval(() => {
+        if (!document.hidden) { // Only refresh if the tab is visible
+          console.log("Refreshing health data from Supabase...");
+          loadData();
+        }
+      }, 3 * 60 * 1000); // every 3 minutes
+    }
+    
+    function stopAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+    
+    // Handle visibility changes
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else {
+        startAutoRefresh();
+      }
+    });
+    
+    // Start auto-refresh if page is visible when loaded
+    if (!document.hidden) {
+      startAutoRefresh();
+    }
+    
   </script>
 </body>
 </html>
