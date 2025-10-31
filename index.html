@@ -163,7 +163,7 @@
     }
 
     function updateHealth(amount) {
-      health = Math.max(0, Math.min(max_health, health + amount));
+      health = Math.max(0, health + amount);
       renderHealth();
       saveData();
     }
